@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Homs CP — Scoreboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #07070f; --surface: #0f0f1a; --surface2: #161624;
+      --border: #1e1e32; --accent: #7c6ffa; --accent2: #a89cfc;
+      --solved-bg: #071a0f; --solved-border: #15803d; --solved-text: #4ade80;
+      --text: #ddddf0; --muted: #52526e;
+      --gold: #f59e0b; --silver: #9ca3af; --bronze: #b45309;
+    }
+    html, body { min-height: 100vh; background: var(--bg); color: var(--text); font-family: 'Space Grotesk', sans-serif; }
+    .header {
+      background: var(--surface); border-bottom: 1px solid var(--border);
+      padding: 16px 20px; display: flex; align-items: center;
+      justify-content: space-between; position: sticky; top: 0; z-index: 10;
+    }
+    .org { font-size: 10px; letter-spacing: .14em; color: var(--accent2); font-weight: 600; text-transform: uppercase; display: block; margin-bottom: 2px; }
+    .title { font-size: 18px; font-weight: 700; }
+    .live-badge { display: flex; align-items: center; gap: 6px; background: rgba(74,222,128,.08); border: 1px solid rgba(74,222,128,.2); border-radius: 20px; padding: 5px 12px; }
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: #4ade80; box-shadow: 0 0 6px #4ade80; animation: blink 1.8s ease-in-out infinite; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.4} }
+    .live-text { font-size: 11px; font-weight: 600; color: #4ade80; }
+    main { padding: 20px 12px; overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; min-width: 400px; }
+    thead th { font-size: 10px; font-weight: 600; letter-spacing: .1em; color: var(--muted); padding: 8px 10px; border-bottom: 1px solid var(--border); text-align: left; text-transform: uppercase; white-space: nowrap; }
+    thead th.c { text-align: center; }
+    tbody td { padding: 11px 10px; border-bottom: 1px solid var(--border); font-size: 14px; vertical-align: middle; }
+    .rank-cell { width: 40px; text-align: center; }
+    .rank-badge { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 6px; font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 700; }
+    .r1 { background: rgba(245,158,11,.12); color: var(--gold); border: 1px solid rgba(245,158,11,.25); }
+    .r2 { background: rgba(156,163,175,.1); color: var(--silver); border: 1px solid rgba(156,163,175,.2); }
+    .r3 { background: rgba(180,83,9,.12); color: var(--bronze); border: 1px solid rgba(180,83,9,.25); }
+    .rn { background: var(--surface2); color: var(--muted); border: 1px solid var(--border); }
+    .name-cell { font-weight: 600; font-size: 15px; }
+    .prob-cell { width: 76px; text-align: center; padding: 8px 4px; }
+    .solved-chip { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; background: var(--solved-bg); border: 1px solid var(--solved-border); border-radius: 6px; padding: 4px 8px; gap: 1px; min-width: 52px; }
+    .solved-check { font-size: 12px; color: var(--solved-text); }
+    .solved-time { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--solved-text); font-weight: 600; }
+    .unsolved-dot { display: inline-block; width: 18px; height: 18px; border-radius: 4px; background: var(--surface2); border: 1px solid var(--border); }
+    .solved-col { text-align: center; font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 15px; }
+    .time-col { text-align: center; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--muted); }
+    tbody tr:hover td { background: rgba(255,255,255,.018); }
+    tbody tr.top3 td { background: rgba(124,111,250,.03); }
+    .empty { text-align: center; padding: 80px 20px; color: var(--muted); }
+    .empty-icon { font-size: 38px; margin-bottom: 12px; opacity: .35; }
+    .empty-msg { font-size: 14px; line-height: 1.6; }
+    footer { text-align: center; padding: 20px; font-size: 11px; color: var(--muted); border-top: 1px solid var(--border); margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div>
+      <span class="org">Your Academic Destination · Homs CP</span>
+      <span class="title">Scoreboard</span>
+    </div>
+    <div class="live-badge"><span class="dot"></span><span class="live-text">LIVE</span></div>
+  </header>
+  <main>
+    <div class="empty" id="empty-state">
+      <div class="empty-icon">🏁</div>
+      <div class="empty-msg">Contest hasn't started yet.<br>Check back soon.</div>
+    </div>
+    <table id="standings-table" style="display:none">
+      <thead>
+        <tr>
+          <th class="c">#</th><th>Participant</th>
+          <th class="c">A</th><th class="c">B</th><th class="c">C</th><th class="c">D</th>
+          <th class="c">Solved</th><th class="c">Time</th>
+        </tr>
+      </thead>
+      <tbody id="standings-body"></tbody>
+    </table>
+  </main>
+  <footer>Homs CP Community — University Fair</footer>
+  <script>
+    const BIN_ID  = '6ab18924ffd5d160532070a9';
+    const API_KEY = '$2a$10$kTWZAmRf2LMtsqir/UHGb.2Nd0YygmGZP0BOCtj/BZhiuO2TTgXjm';
+    const PROBLEMS = ['A','B','C','D'];
+
+    function rank(participants) {
+      return [...participants].map(p => {
+        const solved = PROBLEMS.filter(pr => p.problems[pr]?.solved);
+        const totalTime = solved.reduce((s, pr) => s + (p.problems[pr]?.time || 0), 0);
+        return { ...p, solvedCount: solved.length, totalTime };
+      }).sort((a, b) => b.solvedCount !== a.solvedCount ? b.solvedCount - a.solvedCount : a.totalTime - b.totalTime);
+    }
+
+    function esc(str) {
+      return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    function render(participants) {
+      const empty = document.getElementById('empty-state');
+      const table = document.getElementById('standings-table');
+      const tbody = document.getElementById('standings-body');
+      if (!participants || participants.length === 0) {
+        empty.style.display = 'block'; table.style.display = 'none'; return;
+      }
+      empty.style.display = 'none'; table.style.display = 'table';
+      const ranked = rank(participants);
+      tbody.innerHTML = ranked.map((p, i) => {
+        const rc = i===0?'r1':i===1?'r2':i===2?'r3':'rn';
+        const probs = PROBLEMS.map(pr => p.problems[pr]?.solved
+          ? `<td class="prob-cell"><span class="solved-chip"><span class="solved-check">✓</span><span class="solved-time">${p.problems[pr].time}m</span></span></td>`
+          : `<td class="prob-cell"><span class="unsolved-dot"></span></td>`).join('');
+        const sc = p.solvedCount > 0 ? 'var(--solved-text)' : 'var(--muted)';
+        return `<tr class="${i<3?'top3':''}">
+          <td class="rank-cell"><span class="rank-badge ${rc}">${i+1}</span></td>
+          <td class="name-cell">${esc(p.name)}</td>
+          ${probs}
+          <td class="solved-col" style="color:${sc}">${p.solvedCount}</td>
+          <td class="time-col">${p.totalTime > 0 ? p.totalTime+'m' : '—'}</td>
+        </tr>`;
+      }).join('');
+    }
+
+    async function fetchData() {
+      try {
+        const res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
+          headers: { 'X-Master-Key': API_KEY }
+        });
+        if (!res.ok) throw new Error();
+        const data = await res.json();
+        render(data.record?.participants || []);
+      } catch(e) {
+        console.error('Fetch error', e);
+      }
+    }
+
+    fetchData();
+    setInterval(fetchData, 5000);
+  </script>
+</body>
+</html>

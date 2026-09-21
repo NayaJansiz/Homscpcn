@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Homs CP — Admin</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #07070f; --surface: #0f0f1a; --surface2: #161624;
+      --border: #1e1e32; --accent: #7c6ffa; --accent2: #a89cfc;
+      --solved-bg: #071a0f; --solved-border: #15803d; --solved-text: #4ade80;
+      --text: #ddddf0; --muted: #52526e;
+      --danger: #f87171; --danger-bg: rgba(239,68,68,.1); --danger-border: rgba(239,68,68,.2);
+    }
+    html, body { min-height: 100vh; background: var(--bg); color: var(--text); font-family: 'Space Grotesk', sans-serif; }
+    .header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
+    .org { font-size: 10px; letter-spacing: .14em; color: var(--accent2); font-weight: 600; text-transform: uppercase; display: block; margin-bottom: 2px; }
+    .title { font-size: 18px; font-weight: 700; }
+    .admin-tag { background: rgba(124,111,250,.12); border: 1px solid rgba(124,111,250,.25); border-radius: 20px; padding: 5px 12px; font-size: 11px; font-weight: 600; color: var(--accent2); }
+    main { padding: 20px; max-width: 640px; margin: 0 auto; }
+    .stats { display: flex; gap: 12px; margin-bottom: 24px; }
+    .stat { flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; }
+    .stat-val { font-family: 'JetBrains Mono', monospace; font-size: 22px; font-weight: 700; }
+    .stat-lbl { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .section-title { font-size: 11px; font-weight: 600; letter-spacing: .1em; color: var(--accent2); text-transform: uppercase; margin-bottom: 12px; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 18px; margin-bottom: 24px; }
+    .name-row { margin-bottom: 16px; }
+    .input { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; color: var(--text); font-family: inherit; font-size: 15px; outline: none; transition: border-color .15s; }
+    .input:focus { border-color: var(--accent); }
+    .input::placeholder { color: var(--muted); }
+    .problems-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 16px; }
+    .prob-card { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
+    .prob-top { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .prob-letter { font-family: 'JetBrains Mono', monospace; font-size: 16px; font-weight: 700; color: var(--accent2); }
+    .prob-check { width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; }
+    .prob-status { font-size: 12px; color: var(--muted); }
+    .time-in { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 5px; padding: 7px 10px; color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 13px; outline: none; transition: border-color .15s; }
+    .time-in:focus { border-color: var(--accent); }
+    .time-in:disabled { opacity: .3; cursor: not-allowed; }
+    .time-in::placeholder { color: var(--muted); }
+    .error-msg { color: var(--danger); font-size: 13px; margin-bottom: 12px; min-height: 18px; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; padding: 11px 22px; border-radius: 7px; border: none; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer; transition: opacity .15s, transform .1s; }
+    .btn:active { transform: scale(.97); }
+    .btn-primary { background: var(--accent); color: #fff; width: 100%; }
+    .btn-primary:hover { opacity: .85; }
+    .btn-primary:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+    .btn-danger { background: var(--danger-bg); color: var(--danger); border: 1px solid var(--danger-border); padding: 5px 12px; font-size: 12px; }
+    .btn-danger:hover { background: rgba(239,68,68,.18); }
+    .p-list { display: flex; flex-direction: column; gap: 8px; }
+    .p-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .p-info { display: flex; flex-direction: column; gap: 6px; flex: 1; }
+    .p-name { font-weight: 600; font-size: 14px; }
+    .badges { display: flex; gap: 5px; flex-wrap: wrap; }
+    .badge { border-radius: 4px; font-family: 'JetBrains Mono', monospace; font-size: 11px; padding: 2px 7px; font-weight: 600; }
+    .badge-s { background: var(--solved-bg); color: var(--solved-text); border: 1px solid var(--solved-border); }
+    .badge-u { background: var(--surface2); color: var(--muted); border: 1px solid var(--border); }
+    .empty-list { text-align: center; padding: 30px; color: var(--muted); font-size: 13px; }
+    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #16a34a; color: #fff; padding: 10px 20px; border-radius: 8px; font-size: 13px; font-weight: 600; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 100; white-space: nowrap; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div>
+      <span class="org">Your Academic Destination · Homs CP</span>
+      <span class="title">Admin Panel</span>
+    </div>
+    <span class="admin-tag">Admin</span>
+  </header>
+  <main>
+    <div class="stats">
+      <div class="stat"><div class="stat-val" id="stat-p">0</div><div class="stat-lbl">Participants</div></div>
+      <div class="stat"><div class="stat-val" id="stat-s">0</div><div class="stat-lbl">Total solves</div></div>
+    </div>
+    <div class="section-title">Add Participant</div>
+    <div class="card">
+      <div class="name-row">
+        <input class="input" id="name-input" placeholder="Participant name" type="text" />
+      </div>
+      <div class="problems-grid" id="problems-grid"></div>
+      <div class="error-msg" id="error-msg"></div>
+      <button class="btn btn-primary" id="add-btn" onclick="addParticipant()">Add to scoreboard</button>
+    </div>
+    <div class="section-title">Participants</div>
+    <div class="p-list" id="p-list"><div class="empty-list">No participants yet.</div></div>
+  </main>
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const BIN_ID  = '6ab18924ffd5d160532070a9';
+    const API_KEY = '$2a$10$kTWZAmRf2LMtsqir/UHGb.2Nd0YygmGZP0BOCtj/BZhiuO2TTgXjm';
+    const PROBLEMS = ['A','B','C','D'];
+    let participants = [];
+
+    function buildGrid() {
+      document.getElementById('problems-grid').innerHTML = PROBLEMS.map(pr => `
+        <div class="prob-card">
+          <div class="prob-top">
+            <span class="prob-letter">${pr}</span>
+            <input type="checkbox" class="prob-check" id="check-${pr}" onchange="toggleProb('${pr}')" />
+            <span class="prob-status" id="status-${pr}">Not solved</span>
+          </div>
+          <input type="number" class="time-in" id="time-${pr}" placeholder="minutes" min="1" disabled />
+        </div>`).join('');
+    }
+
+    function toggleProb(pr) {
+      const checked = document.getElementById(`check-${pr}`).checked;
+      const ti = document.getElementById(`time-${pr}`);
+      const st = document.getElementById(`status-${pr}`);
+      ti.disabled = !checked;
+      st.textContent = checked ? 'Solved' : 'Not solved';
+      st.style.color = checked ? 'var(--solved-text)' : 'var(--muted)';
+      if (!checked) ti.value = '';
+      document.getElementById('error-msg').textContent = '';
+    }
+
+    function resetForm() {
+      document.getElementById('name-input').value = '';
+      PROBLEMS.forEach(pr => {
+        document.getElementById(`check-${pr}`).checked = false;
+        document.getElementById(`time-${pr}`).value = '';
+        document.getElementById(`time-${pr}`).disabled = true;
+        document.getElementById(`status-${pr}`).textContent = 'Not solved';
+        document.getElementById(`status-${pr}`).style.color = 'var(--muted)';
+      });
+      document.getElementById('error-msg').textContent = '';
+      document.getElementById('name-input').focus();
+    }
+
+    async function addParticipant() {
+      const name = document.getElementById('name-input').value.trim();
+      const errEl = document.getElementById('error-msg');
+      if (!name) { errEl.textContent = 'Please enter a participant name.'; return; }
+      const probs = {};
+      for (const pr of PROBLEMS) {
+        const solved = document.getElementById(`check-${pr}`).checked;
+        const time = parseInt(document.getElementById(`time-${pr}`).value, 10);
+        if (solved && (!time || time <= 0)) { errEl.textContent = `Enter a valid time for Problem ${pr}.`; return; }
+        probs[pr] = { solved, time: solved ? time : 0 };
+      }
+      const btn = document.getElementById('add-btn');
+      btn.disabled = true; btn.textContent = 'Saving…';
+      const newP = { id: Date.now().toString(), name, problems: probs };
+      participants.push(newP);
+      const ok = await saveData();
+      if (ok) { resetForm(); renderList(); updateStats(); showToast(`${name} added! ✓`); }
+      else { participants.pop(); showToast('Save failed — try again', true); }
+      btn.disabled = false; btn.textContent = 'Add to scoreboard';
+    }
+
+    async function removeParticipant(id) {
+      participants = participants.filter(p => p.id !== id);
+      await saveData(); renderList(); updateStats();
+    }
+
+    async function saveData() {
+      try {
+        const res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'X-Master-Key': API_KEY },
+          body: JSON.stringify({ participants })
+        });
+        return res.ok;
+      } catch(e) { return false; }
+    }
+
+    async function loadData() {
+      try {
+        const res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
+          headers: { 'X-Master-Key': API_KEY }
+        });
+        const data = await res.json();
+        participants = data.record?.participants || [];
+        renderList(); updateStats();
+      } catch(e) { console.error(e); }
+    }
+
+    function esc(str) { return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+    function renderList() {
+      const c = document.getElementById('p-list');
+      if (participants.length === 0) { c.innerHTML = '<div class="empty-list">No participants yet.</div>'; return; }
+      const sorted = [...participants].map(p => ({ ...p, sc: PROBLEMS.filter(pr => p.problems[pr]?.solved).length })).sort((a,b) => b.sc - a.sc);
+      c.innerHTML = sorted.map((p, i) => {
+        const badges = PROBLEMS.map(pr => p.problems[pr]?.solved
+          ? `<span class="badge badge-s">${pr} · ${p.problems[pr].time}m</span>`
+          : `<span class="badge badge-u">${pr}</span>`).join('');
+        return `<div class="p-card">
+          <div class="p-info">
+            <span class="p-name">${i+1}. ${esc(p.name)}</span>
+            <div class="badges">${badges}</div>
+          </div>
+          <button class="btn btn-danger" onclick="removeParticipant('${p.id}')">Remove</button>
+        </div>`;
+      }).join('');
+    }
+
+    function updateStats() {
+      document.getElementById('stat-p').textContent = participants.length;
+      document.getElementById('stat-s').textContent = participants.reduce((s,p) => s + PROBLEMS.filter(pr => p.problems[pr]?.solved).length, 0);
+    }
+
+    function showToast(msg, isError=false) {
+      const t = document.getElementById('toast');
+      t.textContent = msg; t.style.background = isError ? '#dc2626' : '#16a34a';
+      t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2500);
+    }
+
+    buildGrid();
+    loadData();
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('name-input').addEventListener('keydown', e => {
+        if (e.key === 'Enter') document.getElementById('check-A').focus();
+      });
+    });
+  </script>
+</body>
+</html>
